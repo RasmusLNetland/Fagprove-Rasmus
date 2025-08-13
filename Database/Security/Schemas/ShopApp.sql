@@ -1,0 +1,3 @@
+CREATE SCHEMA [ShopApp]
+AUTHORIZATION [dbo]
+GO
