@@ -1,0 +1,19 @@
+./Api/./ShopAppApi/.vs
+./Api/./ShopAppApi/.vs
+./Api/./ShopAppApi/bin
+./Api/./ShopAppApi/obj
+./Api/./ShopAppApi/*.user
+./Api/./ShopAppApi/.Tests/bin
+./Api/./ShopAppApi/.Tests/obj
+./Api/./ShopAppApi/ShopAppApi.xml
+./Api/./ShopAppApi/ShopAppApi - Backup*.csproj
+./Api/./ShopAppApi/.Tests/ShopAppApi - Backup*.csproj
+
+./Api/./RSATokenCreator/.vs
+./Api/./RSATokenCreator/.vs
+./Api/./RSATokenCreator/bin
+./Api/./RSATokenCreator/obj
+./Api/./RSATokenCreator/*.user
+./Api/./ShopAppApi/RSATokenCreator - Backup*.csproj
+
+.idea
