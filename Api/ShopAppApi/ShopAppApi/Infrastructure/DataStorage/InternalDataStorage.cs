@@ -260,19 +260,26 @@ public class InternalDataStorage : IInternalDataStorage
         }
     }
 
-    public async Task<IEnumerable<ItemResponse>> GetItemsForListAsync( int listId, CancellationToken cancellationToken = default )
+    public async Task<ListDetailsResponse> GetListDetailsAsync( int listId, CancellationToken cancellationToken = default )
     {
         try
         {
             List<ItemResponse> items = new();
             await using SqlConnection connection = await SqlDatabaseUtils.GetConnectionAsync( _connectionString, cancellationToken );
             await using SqlCommand command = connection.CreateCommand();
-            command.CommandText = GetItemsForListSpName;
+            command.CommandText = GetListDetailsSpName;
             command.CommandType = CommandType.StoredProcedure;
             command.CommandTimeout = _timeout;
             command.Parameters.AddWithValue( "list_id", listId );
             await using SqlDataReader reader =
                 await SqlDatabaseUtils.ExecuteSqlWithRetry( async () => await command.ExecuteReaderAsync( cancellationToken ) );
+            if( !await reader.ReadAsync( cancellationToken ) )
+                throw new Exception( "Could not get result set" );
+
+            string listName = Convert.ToString( reader["name"] ) ?? string.Empty;
+
+            if( !await reader.NextResultAsync( cancellationToken ) )
+                throw new Exception( "Could not get list items" );
 
             while( await reader.ReadAsync( cancellationToken ) )
             {
@@ -293,12 +300,16 @@ public class InternalDataStorage : IInternalDataStorage
                 } );
             }
 
-            return items;
+            return new ListDetailsResponse()
+            {
+                Name = listName,
+                Items = items
+            };
         }
         catch(Exception ex)
         {
             ex.ProcessAndLogException( _logger );
-            return new List<ItemResponse>();
+            return new ListDetailsResponse();
         }
     }
 
@@ -489,7 +500,7 @@ public class InternalDataStorage : IInternalDataStorage
 
     public const string CreateListSpName = "ShopApp.CreateList";
     public const string GetListsByUserIdSpName = "ShopApp.GetListsByUser";
-    public const string GetItemsForListSpName = "ShopApp.GetItemsForList";
+    public const string GetListDetailsSpName = "ShopApp.GetListDetails";
     public const string SetItemsCheckedSpName = "ShopApp.MarkItemsAsChecked";
     public const string GetTemplateListsSpName = "ShopApp.GetTemplateLists";
     public const string UpdateListSpName = "ShopApp.UpdateList";

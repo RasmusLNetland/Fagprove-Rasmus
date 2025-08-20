@@ -85,27 +85,27 @@ public class ListsController : ControllerBase
     }
 
     /// <summary>
-    /// Gets items in a list
+    /// Gets list details
     /// </summary>
     /// <param name="id"></param>
     /// <param name="cancellationToken"></param>
-    /// <returns>ItemResponse</returns>
+    /// <returns>ListDetailsResponse</returns>
     [HttpGet]
     [MapToApiVersion( "1" )]
     [Authorize]
-    [Route( "lists/{id:int}", Name = "GetItemsForList" )]
+    [Route( "lists/{id:int}", Name = "GetListDetails" )]
     [Produces( "application/json" )]
-    [SwaggerResponse( (int)HttpStatusCode.OK, "List response (IEnumerable)", typeof(IEnumerable<ListResponse>) )]
+    [SwaggerResponse( (int)HttpStatusCode.OK, "List Details response", typeof(ListDetailsResponse) )]
 #if !DEBUG
     [SwaggerResponse( (int)HttpStatusCode.Unauthorized, "Unauthorized" )]
     [SwaggerResponse( (int)HttpStatusCode.NoContent, "No Content" )]
     [SwaggerResponse( (int)HttpStatusCode.BadRequest, "Bad Request" )]
     [SwaggerResponse( (int)HttpStatusCode.InternalServerError, "Internal server error" )]
 #endif
-    public async Task<IActionResult> GetItemsForList( [FromRoute] int id, CancellationToken cancellationToken = default )
+    public async Task<IActionResult> GetListDetails( [FromRoute] int id, CancellationToken cancellationToken = default )
     {
-        IEnumerable<ItemResponse> result =
-            await _mediator.Send( new GetItemsForListQuery()
+        ListDetailsResponse result =
+            await _mediator.Send( new GetListDetailsQuery()
             {
                 ListId = id
             }, cancellationToken );

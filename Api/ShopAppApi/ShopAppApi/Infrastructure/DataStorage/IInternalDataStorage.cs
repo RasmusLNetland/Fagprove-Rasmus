@@ -18,7 +18,7 @@ public interface IInternalDataStorage
                                         CancellationToken cancellationToken = default );
 
     Task<IEnumerable<ListResponse>> GetListsByUserIdAsync( int userId, CancellationToken cancellationToken = default );
-    Task<IEnumerable<ItemResponse>> GetItemsForListAsync( int listId, CancellationToken cancellationToken = default );
+    Task<ListDetailsResponse> GetListDetailsAsync( int listId, CancellationToken cancellationToken = default );
 
     Task BatchMarkItemsAsCheckedAsync( Dictionary<int, bool> itemStatuses,
                                        CancellationToken cancellationToken = default );

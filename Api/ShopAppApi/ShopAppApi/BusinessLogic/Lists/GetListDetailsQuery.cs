@@ -4,9 +4,9 @@ using ShopAppApi.Infrastructure.Models;
 namespace ShopAppApi.BusinessLogic.Lists
 {
     /// <summary>
-    /// GetItemsForListQuery
+    /// GetListDetailsQuery
     /// </summary>
-    public class GetItemsForListQuery : IRequest<IEnumerable<ItemResponse>>
+    public class GetListDetailsQuery : IRequest<ListDetailsResponse>
     {
         /// <summary>
         /// Id of list
@@ -20,7 +20,7 @@ namespace ShopAppApi.BusinessLogic.Lists
         /// <returns></returns>
         public override bool Equals( object? obj )
         {
-            GetItemsForListQuery? query = obj as GetItemsForListQuery;
+            GetListDetailsQuery? query = obj as GetListDetailsQuery;
             if( query is null )
                 return false;
 

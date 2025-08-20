@@ -80,21 +80,21 @@ namespace ShopAppApi.Tests.Controllers
         }
 
         [Test]
-        public async Task GetItemsForList_ReturnsOkResult_WithItemResponses()
+        public async Task GetListDetails_ReturnsOkResult_WithItemResponses()
         {
             #region Arrange
 
             int listId = 1;
-            List<ItemResponse> expectedItems = new() { new() };
+            ListDetailsResponse listDetails = new();
             _mediatorMock
-                .Setup( m => m.Send( It.IsAny<GetItemsForListQuery>(), It.IsAny<CancellationToken>() ) )
-                .ReturnsAsync( expectedItems );
+                .Setup( m => m.Send( It.IsAny<GetListDetailsQuery>(), It.IsAny<CancellationToken>() ) )
+                .ReturnsAsync( listDetails );
 
             #endregion
 
             #region Act
 
-            IActionResult result = await _controller.GetItemsForList( listId, _cts.Token );
+            IActionResult result = await _controller.GetListDetails( listId, _cts.Token );
 
             #endregion
 
@@ -102,7 +102,7 @@ namespace ShopAppApi.Tests.Controllers
 
             result.Should().NotBeNull()
                   .And.BeOfType<OkObjectResult>()
-                  .Which.Value.Should().Be( expectedItems );
+                  .Which.Value.Should().Be( listDetails );
 
             #endregion
         }

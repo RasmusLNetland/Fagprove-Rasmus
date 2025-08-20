@@ -6,9 +6,9 @@ using ShopAppApi.Infrastructure.Models;
 namespace ShopAppApi.BusinessLogic.Lists
 {
     /// <summary>
-    /// Handler for GetItemsForListQuery
+    /// Handler for GetListDetailsQuery
     /// </summary>
-    public class GetItemsForListQueryHandler : IRequestHandler<GetItemsForListQuery, IEnumerable<ItemResponse>>
+    public class GetListDetailsQueryHandler : IRequestHandler<GetListDetailsQuery, ListDetailsResponse>
     {
         #region Constructors
 
@@ -18,7 +18,7 @@ namespace ShopAppApi.BusinessLogic.Lists
         /// <param name="internalDataStorage"></param>
         /// <param name="logger"></param>
         /// <exception cref="ArgumentNullException"></exception>
-        public GetItemsForListQueryHandler( IInternalDataStorage internalDataStorage, ILogger<GetItemsForListQueryHandler> logger )
+        public GetListDetailsQueryHandler( IInternalDataStorage internalDataStorage, ILogger<GetListDetailsQueryHandler> logger )
         {
             _internalDataStorage = internalDataStorage ?? throw new ArgumentNullException( nameof(internalDataStorage) );
             _logger = logger ?? throw new ArgumentNullException( nameof(logger) );
@@ -32,14 +32,14 @@ namespace ShopAppApi.BusinessLogic.Lists
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async Task<IEnumerable<ItemResponse>> Handle( GetItemsForListQuery request, CancellationToken cancellationToken )
+        public async Task<ListDetailsResponse> Handle( GetListDetailsQuery request, CancellationToken cancellationToken )
         {
             try
             {
-                IEnumerable<ItemResponse> items =
-                    await _internalDataStorage.GetItemsForListAsync( request.ListId, cancellationToken: cancellationToken );
+                ListDetailsResponse details =
+                    await _internalDataStorage.GetListDetailsAsync( request.ListId, cancellationToken: cancellationToken );
 
-                return items;
+                return details;
             }
             catch(Exception ex)
             {
@@ -50,7 +50,7 @@ namespace ShopAppApi.BusinessLogic.Lists
         #region Private members
 
         private readonly IInternalDataStorage _internalDataStorage;
-        private readonly ILogger<GetItemsForListQueryHandler> _logger;
+        private readonly ILogger<GetListDetailsQueryHandler> _logger;
 
         #endregion
     }
