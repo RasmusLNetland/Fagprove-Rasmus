@@ -1,0 +1,97 @@
+﻿@using ShopAppFrontend.Infrastructure.DataStorage.ShopAppApi.Models
+@inject IShopAppApiClient ShopAppApiClient
+@inject NavigationManager Navigation
+@inject ListState ListState
+
+<div class="d-flex flex-column min-vh-100 px-2 py-3">
+    <div class="flex-grow-1">
+        <ul class="nav flex-column">
+            @if( ListState?.Lists is null || !ListState.Lists.Any() )
+            {
+                <li class="text-muted">Laster...</li>
+            }
+            else
+            {
+                @foreach( ListResponse listItem in ListState.Lists )
+                {
+                    <li class="nav-item mb-2">
+                        <button class="sidebar-btn w-100"
+                                @onclick="() => OnItemClicked( listItem )">
+                            @listItem.Name
+                        </button>
+                    </li>
+                }
+            }
+        </ul>
+    </div>
+
+    <!-- Fixed at bottom -->
+    <div class="pt-3 sticky-bottom">
+        <button class="create-btn w-100"
+                @onclick="OnCreateListClicked">
+            ➕ Lag ny liste
+        </button>
+    </div>
+</div>
+
+<style>
+    .sidebar-btn {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #fff;
+        border: none;
+        border-radius: 0.25rem;
+        padding: 0.5rem 1rem;
+        text-align: left;
+        font-weight: 500;
+        transition: background-color 0.2s;
+    }
+
+    .sidebar-btn:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .create-btn {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #fff;
+        border: none;
+        border-radius: 0.25rem;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        transition: background-color 0.2s;
+    }
+
+    .create-btn:hover {
+        background-color: #059669;
+    }
+
+    /* Ensure sticky-bottom works */
+    .sticky-bottom {
+        position: sticky;
+        bottom: 0;
+    }
+</style>
+
+@code {
+
+    public void Dispose()
+    {
+        ListState.OnChange -= StateHasChanged;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        ListState.OnChange += StateHasChanged;
+        await ListState.RefreshAsync();
+    }
+
+    private void OnItemClicked( ListResponse item )
+    {
+        Navigation.NavigateTo( $"/lists/{item.Id}" );
+    }
+
+    private void OnCreateListClicked()
+    {
+        Navigation.NavigateTo( "/" );
+    }
+
+}

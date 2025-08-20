@@ -1,0 +1,31 @@
+﻿@using ShopAppFrontend.Auxiliary
+@inject ErrorNotifier Notifier
+
+<div class="position-fixed bottom-0 end-0 m-3 p-3 bg-danger text-white rounded shadow"
+     style="display:@(string.IsNullOrEmpty( _message ) ? "none" : "block")">
+    <strong>@_message</strong>
+    <div class="mt-2">
+        <button class="btn btn-sm btn-light dismiss" @onclick="Dismiss">Dismiss 🗙</button>
+    </div>
+</div>
+
+@code {
+
+    protected override void OnInitialized()
+    {
+        Notifier.OnError += ShowError;
+    }
+
+    private void ShowError( string message )
+    {
+        _message = message;
+        InvokeAsync( StateHasChanged );
+    }
+
+    private void Dismiss()
+    {
+        _message = null;
+    }
+
+    private string? _message;
+}

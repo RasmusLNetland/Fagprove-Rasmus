@@ -1,0 +1,70 @@
+﻿@page "/login"
+@using ShopAppFrontend.Components.Layout
+@using ShopAppFrontend.Infrastructure.ViewModels
+@using Microsoft.AspNetCore.Components.Authorization
+@using ShopAppFrontend.Infrastructure.DataStorage.ShopAppApi.Models
+@using ShopAppFrontend.Infrastructure.Services
+@layout EmptyLayout
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@rendermode InteractiveServer
+
+<div class="d-flex flex-column justify-content-center align-items-center vh-100 bg-light">
+    <h1 class="mb-5 fw-bold text-primary">Handleliste App</h1>
+
+    <div class="card shadow-sm p-4" style="min-width: 350px; max-width: 400px; width: 100%;">
+        <h3 class="text-center mb-4">Logg inn</h3>
+        <EditForm Model="_loginModel" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator/>
+
+            <div class="mb-3">
+                <label for="email" class="form-label">E-post</label>
+                <InputText id="email" class="form-control" @bind-Value="_loginModel.Email" placeholder="E-post..."/>
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label">Passord</label>
+                <InputText id="password" type="password" class="form-control" @bind-Value="_loginModel.Password" placeholder="Passord..."/>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Login</button>
+        </EditForm>
+
+        <div class="text-center mt-3">
+            <small class="text-muted">
+                Har du ikke bruker? <a href="/register">Registrer deg her</a>
+            </small>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    private async Task HandleLogin()
+    {
+        TokenResponse? res = await AuthService.LoginAsync( _loginModel );
+        await VerifyAuthAndNavigate( res );
+    }
+
+    protected override async Task OnAfterRenderAsync( bool firstRender )
+    {
+        // if we have refresh token, try to use it to get new authtoken.
+        if( firstRender )
+        {
+            TokenResponse? res = await AuthService.TryRefreshTokenAsync();
+            await VerifyAuthAndNavigate( res );
+        }
+    }
+
+    private async Task VerifyAuthAndNavigate( TokenResponse? response )
+    {
+        if( response is not null && !string.IsNullOrEmpty( response.Token ) )
+        {
+            await ((CustomAuthStateProvider)AuthStateProvider).MarkUserAsAuthenticated( response.Token );
+            Navigation.NavigateTo( "/" );
+        }
+    }
+
+    private readonly LoginViewModel _loginModel = new();
+}

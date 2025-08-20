@@ -1,0 +1,96 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using ShopAppFrontend.Infrastructure.Services
+@using System.Security.Claims
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+
+<div class="d-flex vh-100">
+    <aside class="d-flex flex-column p-4" style="
+        width: 260px;
+        background: linear-gradient(180deg, #1E3A8A, #2563EB);
+        border-right: 1px solid rgba(255,255,255,0.15);
+        border-radius: 0 12px 12px 0;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    ">
+        <h2 class="text-white fw-bold mb-4">Handlelister</h2>
+
+        <AuthorizeView>
+            <Authorized>
+                <ListsBar/>
+            </Authorized>
+            <NotAuthorized>
+                <p class="text-white-50">Please log in to see your lists.</p>
+            </NotAuthorized>
+        </AuthorizeView>
+    </aside>
+
+    <main class="flex-grow-1 d-flex flex-column bg-gray-50">
+        <div class="d-flex justify-content-between align-items-center p-3 border-bottom bg-white shadow-sm">
+            <AuthorizeView>
+                <Authorized>
+                </Authorized>
+                <NotAuthorized>
+
+                    @code {
+
+                        protected override async Task OnAfterRenderAsync( bool firstRender )
+                        {
+                            if( !_checkedAuth && firstRender )
+                            {
+                                _checkedAuth = true;
+
+                                AuthenticationState authState = await ((CustomAuthStateProvider)AuthStateProvider).GetAuthenticationStateAsync();
+                                ClaimsPrincipal user = authState.User;
+                                bool isAuthenticated = user.Identity?.IsAuthenticated ?? false;
+                                bool isExpired = false;
+
+                                string? expValue = user.FindFirst( "exp" )?.Value;
+
+                                if( long.TryParse( expValue, out long expLong ) )
+                                {
+                                    DateTime expirationDateUtc = DateTimeOffset.FromUnixTimeSeconds( expLong ).UtcDateTime;
+                                    isExpired = DateTime.UtcNow >= expirationDateUtc;
+                                }
+
+                                if( !isAuthenticated || isExpired )
+                                {
+                                    await ((CustomAuthStateProvider)AuthStateProvider).MarkUserAsLoggedOut();
+                                    Navigation.NavigateTo( "login", true );
+                                }
+                            }
+                        }
+
+                        private bool _checkedAuth;
+                    }
+
+                </NotAuthorized>
+            </AuthorizeView>
+
+            <a href="/logout" style="
+                color: #1E40AF;
+                text-decoration: none;
+                font-weight: 500;
+                transition: color 0.2s;
+            "
+               onmouseover="this.style.color='#3B82F6';"
+               onmouseout="this.style.color='#1E40AF';">
+                Logg ut
+            </a>
+        </div>
+
+        <article class="flex-grow-1 p-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+
+<!-- Blazor error UI -->
+<div id="blazor-error-ui" class="position-fixed bottom-0 end-0 m-3 p-3 bg-danger text-white rounded shadow">
+    <strong>An unhandled error has occurred.</strong>
+    <div class="mt-2">
+        <a href="" class="btn btn-sm btn-light me-2 reload">Reload</a>
+        <button class="btn btn-sm btn-light dismiss">Dismiss 🗙</button>
+    </div>
+</div>

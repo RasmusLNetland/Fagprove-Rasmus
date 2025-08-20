@@ -1,0 +1,192 @@
+﻿@page "/lists/{ListId:int}"
+@using ShopAppFrontend.Infrastructure.DataStorage.ShopAppApi.Models
+@inject IShopAppApiClient ShopAppApiClient
+@inject IJSRuntime Js
+@inject NavigationManager Navigation
+@inject ListState ListState
+
+<h3>Handleliste</h3>
+
+@if( _loading )
+{
+    <p>Loading items…</p>
+}
+else if( _error is not null )
+{
+    <div class="alert alert-danger">@_error</div>
+}
+else
+{
+    <div class="mb-3">
+        <input class="form-control" @bind="_listName"/>
+    </div>
+
+    @if( _items.Count == 0 )
+    {
+        <p class="text-muted">Ingen varer i listen enda.</p>
+    }
+    else
+    {
+        @foreach( ItemResponse item in _items )
+        {
+            bool isAdded = !item.Id.HasValue;
+            bool isDeleted = !isAdded && _itemsToDelete.Contains( (int)item.Id );
+
+            <div class="d-flex align-items-center mb-1 @(isDeleted ? "opacity-50" : "") @(isAdded ? "text-success" : "")">
+                <ShoppingItem Item="item" OnCheckedChanged="HandleCheckedChanged"/>
+                <button type="button" class="btn btn-sm btn-outline-danger ms-2"
+                        @onclick="@(() => ToggleDelete( (int)item.Id ))">
+                    @(isDeleted ? "↩️" : "✖")
+                </button>
+            </div>
+        }
+    }
+
+    <!-- Adding items -->
+    <div class="input-group my-3">
+        <input type="text" class="form-control" placeholder="Navn på ny vare"
+               @bind="_newItemName"/>
+        <input type="number" class="form-control" style="max-width:100px"
+               min="1" @bind="_newItemCount"/>
+        <button class="btn btn-outline-primary" @onclick="AddItem">➕</button>
+    </div>
+
+    <button class="btn btn-success w-100" @onclick="SaveChanges">
+        💾 Lagre endringer
+    </button>
+}
+
+@code
+{
+    [Parameter]
+    public int ListId { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            ListDetailsResponse result = await ShopAppApiClient.GetListDetailsAsync( ListId );
+            _items = result.Items.ToList();
+            _listName = result.Name;
+        }
+        catch(Exception ex)
+        {
+            _error = ex.Message;
+            Console.Error.WriteLine( ex );
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task HandleCheckedChanged( (int ItemId, bool IsChecked) change )
+    {
+        _pendingUpdates[change.ItemId] = change.IsChecked;
+
+        bool allChecked = _items.Where( i => i.Id.HasValue )
+                                .All( i => i.CheckedOn.HasValue || i.Id == change.ItemId && change.IsChecked );
+
+        if( allChecked && _items.Count > 0 )
+        {
+    // Prompt user to archive list
+            bool archive = await Js.InvokeAsync<bool>( "confirm", "Alle endringer er sjekket av, vil du arkivere listen?" );
+            if( archive )
+            {
+                await ShopAppApiClient.ArchiveListAsync( ListId );
+                await ListState.RefreshAsync();
+                Navigation.NavigateTo( "/" );
+            }
+        }
+
+    // reset debounce
+        _debounceTimer?.Stop();
+        _debounceTimer = new System.Timers.Timer( 500 );
+        _debounceTimer.Elapsed += async ( _, __ ) => await FlushUpdatesAsync();
+        _debounceTimer.AutoReset = false;
+        _debounceTimer.Start();
+    }
+
+    private async Task FlushUpdatesAsync()
+    {
+        _debounceTimer?.Stop();
+        _debounceTimer?.Dispose();
+        _debounceTimer = null;
+
+        if( _pendingUpdates.Count == 0 ) return;
+
+        try
+        {
+            await ShopAppApiClient.MarkItemsCheckedAsync( _pendingUpdates );
+            Console.WriteLine( $"Synced {_pendingUpdates.Count} updates to server" );
+        }
+        catch(Exception ex)
+        {
+            _error = "Failed to sync changes: " + ex.Message;
+            Console.Error.WriteLine( ex );
+        }
+        _pendingUpdates.Clear();
+    }
+
+    private void ToggleDelete( int itemId )
+    {
+        if( _itemsToDelete.Contains( itemId ) )
+            _itemsToDelete.Remove( itemId );
+        else
+            _itemsToDelete.Add( itemId );
+    }
+
+    private void AddItem()
+    {
+        if( !string.IsNullOrWhiteSpace( _newItemName ) && _newItemCount > 0 )
+        {
+            _items.Add( new ItemResponse
+            {
+                Id = null,
+                Name = _newItemName,
+                Count = _newItemCount
+            } );
+
+            _newItemName = string.Empty;
+            _newItemCount = 1;
+        }
+    }
+
+    private async Task SaveChanges()
+    {
+        UpdateListRequest updateRequest = new()
+        {
+            Id = ListId,
+            Name = _listName,
+            Items = new List<UpdateItemRequest>()
+        };
+
+        updateRequest.Items.AddRange(
+            _items.Where( i => !i.Id.HasValue || !_itemsToDelete.Contains( (int)i.Id ) )
+                  .Select( i => new UpdateItemRequest()
+                  {
+                      Id = i.Id,
+                      Name = i.Name,
+                      Count = i.Count
+                  } ) );
+
+        await ShopAppApiClient.UpdateListAsync( updateRequest );
+        await ListState.RefreshAsync();
+        Navigation.NavigateTo( Navigation.Uri, forceLoad: true ); // refreshes page after changes
+    }
+
+    private List<ItemResponse> _items = new();
+    private bool _loading;
+    private string? _error;
+
+    private string _listName = string.Empty;
+    private HashSet<int> _itemsToDelete = new();
+    private string _newItemName = string.Empty;
+    private int _newItemCount = 1;
+
+    private Dictionary<int, bool> _pendingUpdates = new();
+    private System.Timers.Timer? _debounceTimer;
+}

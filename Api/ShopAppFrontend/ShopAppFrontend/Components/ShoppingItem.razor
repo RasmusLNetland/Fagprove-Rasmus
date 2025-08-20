@@ -1,0 +1,50 @@
+﻿@using ShopAppFrontend.Infrastructure.DataStorage.ShopAppApi.Models
+
+<div class="card mb-2 shadow-sm rounded-2 p-2 d-flex flex-row align-items-center">
+    <input type="checkbox" class="form-check-input me-2"
+           checked="@_isChecked"
+           @onchange="ToggleChecked"/>
+
+    <div class="flex-grow-1">
+        <div class="d-flex align-items-center gap-2">
+            <strong>@Item.Name</strong>
+            <span class="badge bg-secondary">@Item.Count stk</span>
+        </div>
+        <div class="text-muted small">
+            Lagt Til: @Item.CreatedOn?.ToString( "HH:mm dd.MM.yy" )
+        </div>
+    </div>
+
+    @if( Item.CheckedOn is not null )
+    {
+        <span class="badge bg-success ms-2">Bought</span>
+    }
+</div>
+
+
+@code {
+
+    [Parameter]
+    [EditorRequired]
+    public ItemResponse Item { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<(int ItemId, bool IsChecked)> OnCheckedChanged { get; set; }
+
+    private async Task ToggleChecked( ChangeEventArgs e )
+    {
+    // Just toggles locally for now
+        if( (bool)e.Value! )
+            Item.CheckedOn = DateTime.Now;
+        else
+            Item.CheckedOn = null;
+
+        await OnCheckedChanged.InvokeAsync( ((int)Item.Id!, _isChecked) );
+    }
+
+    private bool _isChecked
+    {
+        get { return Item.CheckedOn is not null; }
+    }
+
+}

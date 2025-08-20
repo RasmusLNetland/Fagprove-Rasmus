@@ -1,0 +1,95 @@
+﻿@page "/register"
+@using ShopAppFrontend.Infrastructure.DataStorage.ShopAppApi.Models
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Authorization
+@using ShopAppFrontend.Components.Layout
+@using ShopAppFrontend.Infrastructure.Services
+@using ShopAppFrontend.Infrastructure.ViewModels
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@layout EmptyLayout
+@rendermode InteractiveServer
+
+<div class="d-flex flex-column justify-content-center align-items-center vh-100 bg-light">
+    <h1 class="mb-5 fw-bold text-primary">Handleliste App</h1>
+
+    <div class="card shadow p-4" style="min-width: 360px; max-width: 400px; width: 100%;">
+        <h3 class="text-center mb-4">Registrer deg</h3>
+
+        <EditForm Model="_registrationModel" OnValidSubmit="HandleRegister">
+            <DataAnnotationsValidator/>
+
+            <div class="mb-3">
+                <label for="name" class="form-label">Navn</label>
+                <InputText id="name" class="form-control" @bind-Value="_registrationModel.FullName" placeholder="Navn..."/>
+            </div>
+
+            <div class="mb-3">
+                <label for="email" class="form-label">E-post</label>
+                <InputText id="email" type="email" class="form-control" @bind-Value="_registrationModel.Email" placeholder="E-post..."/>
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label">Passord</label>
+                <InputText id="password" type="password" class="form-control" @bind-Value="_registrationModel.Password" placeholder="Passord..."/>
+            </div>
+
+            <div class="mb-3">
+                <label for="confirmPassword" class="form-label">Bekreft Passord</label>
+                <InputText id="confirmPassword" type="password" class="form-control" @bind-Value="_confirmPassword" placeholder="Bekret passord..."/>
+            </div>
+
+            @if( _passwordMismatch )
+            {
+                <div class="alert alert-danger py-2">
+                    Passordene er ikke like!
+                </div>
+            }
+
+            <button type="submit" class="btn btn-primary w-100 mb-3">Registrer</button>
+
+            <div class="text-center">
+                <small class="text-muted">
+                    Har du allerede en konto? <a href="/login">Logg inn her</a>
+                </small>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+
+    private async Task HandleRegister()
+    {
+        _passwordMismatch = false;
+
+        if( string.CompareOrdinal( _registrationModel.Password, _confirmPassword ) != 0 )
+        {
+            _passwordMismatch = true;
+            return;
+        }
+
+        RegistrationRequest request = new()
+        {
+            Email = _registrationModel.Email,
+            FullName = _registrationModel.FullName,
+            Password = _registrationModel.Password
+        };
+        TokenResponse? result = await AuthService.RegisterAsync( request );
+        await VerifyAuthAndNavigate( result );
+    }
+
+    private async Task VerifyAuthAndNavigate( TokenResponse? response )
+    {
+        if( response is not null && !string.IsNullOrEmpty( response.Token ) )
+        {
+            await ((CustomAuthStateProvider)AuthStateProvider).MarkUserAsAuthenticated( response.Token );
+            Navigation.NavigateTo( "/" );
+        }
+    }
+
+    private string _confirmPassword = string.Empty;
+    private bool _passwordMismatch;
+    private readonly RegistrationViewModel _registrationModel = new();
+}

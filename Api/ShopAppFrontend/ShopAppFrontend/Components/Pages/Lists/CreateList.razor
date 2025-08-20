@@ -1,0 +1,135 @@
+﻿@page "/"
+@using ShopAppFrontend.Infrastructure.DataStorage.ShopAppApi.Models
+@using ShopAppFrontend.Infrastructure.ViewModels
+@inject NavigationManager Navigation
+@inject IShopAppApiClient ShopAppApiClient
+@inject ListState ListState
+
+<h3>Lag en ny handleliste</h3>
+
+<EditForm Model="@_listModel" OnValidSubmit="SaveList">
+    <DataAnnotationsValidator/>
+    <ValidationSummary/>
+
+    <div class="mb-3">
+        <label for="templateSelect" class="form-label">Maler</label>
+        <select id="templateSelect" class="form-select" @onchange="@OnTemplateSelected">
+            <option value="">-- Velg en mal --</option>
+            @foreach( ListResponse template in _templates )
+            {
+                <option value="@template.Id">@template.Name</option>
+            }
+        </select>
+    </div>
+
+    <div class="card p-3 shadow-sm mb-3">
+        <div class="mb-3">
+            <label for="listName" class="form-label">Navn på liste</label>
+            <InputText id="listName" class="form-control"
+                       @bind-Value="_listModel.ListName"/>
+            <ValidationMessage For="@(() => _listModel.ListName)"/>
+        </div>
+
+        <h5>Varer</h5>
+        <ul class="list-group mb-3">
+            @foreach( (ItemCreationRequest item, int index) in _items.Select( ( x, i ) => (x, i) ) )
+            {
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    @item.Name - @item.Count stk
+                    <button type="button" class="btn btn-sm btn-outline-danger"
+                            @onclick="() => RemoveItem( index )">
+                        ✖
+                    </button>
+                </li>
+            }
+        </ul>
+
+        <div class="input-group mb-3">
+            <InputText class="form-control" placeholder="Navn på ny vare"
+                       @bind-Value="_newItem.Name" @onkeypress="HandleKeyPress"/>
+            <ValidationMessage For="@(() => _newItem.Name)"/>
+
+            <InputNumber class="form-control" style="max-width:100px"
+                         @bind-Value="_newItem.Count" @onkeypress="HandleKeyPress"/>
+            <ValidationMessage For="@(() => _newItem.Count)"/>
+
+            <button type="button" class="btn btn-outline-primary" @onclick="AddItem">
+                Legg til
+            </button>
+        </div>
+
+        <button type="submit" class="btn btn-success w-100">
+            💾 Opprett handleliste
+        </button>
+    </div>
+</EditForm>
+
+@code {
+
+    protected override async Task OnInitializedAsync()
+    {
+        IEnumerable<ListResponse> result = await ShopAppApiClient.GetTemplateLists();
+        _templates = result.ToList();
+    }
+
+    private async Task OnTemplateSelected( ChangeEventArgs e )
+    {
+        string? selectedId = e.Value?.ToString();
+        if( string.IsNullOrEmpty( selectedId ) ) return;
+
+        ListResponse? template = _templates.FirstOrDefault( t => t.Id.ToString() == selectedId );
+        if( template is null ) return;
+
+
+        _listModel.ListName = template.Name;
+        _items = template.Items
+                         .Select( x => new ItemCreationRequest
+                         {
+                             Name = x.Name,
+                             Count = x.Count
+                         } )
+                         .ToList();
+
+
+        await InvokeAsync( StateHasChanged );
+    }
+
+    private void AddItem()
+    {
+        if( !string.IsNullOrWhiteSpace( _newItem.Name ) && _newItem.Count > 0 )
+        {
+            _items.Add( new ItemCreationRequest
+            {
+                Name = _newItem.Name,
+                Count = _newItem.Count
+            } );
+            _newItem = new ShoppingItemViewModel(); // reset value
+        }
+    }
+
+    private void RemoveItem( int index )
+    {
+        if( index >= 0 && index < _items.Count )
+            _items.RemoveAt( index );
+    }
+
+    private async Task SaveList()
+    {
+        ListResponse? list = await ShopAppApiClient.CreateListAsync( _listModel.ListName, _items );
+        await ListState.RefreshAsync();
+        Navigation.NavigateTo( list is null ? "/" : $"/lists/{list.Id}" );
+    }
+
+    private void HandleKeyPress( KeyboardEventArgs e )
+    {
+        if( e.Key == "Enter" )
+        {
+            AddItem();
+        }
+    }
+
+    private List<ListResponse> _templates = new();
+    private ShoppingListViewModel _listModel = new();
+    private ShoppingItemViewModel _newItem = new();
+    private List<ItemCreationRequest> _items = new();
+}
